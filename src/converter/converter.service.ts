@@ -1,8 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { ConverterRequestDto } from './dto';
-import * as FIRST_NAMES from "../data/first-names.json";
-import * as LAST_NAMES from "../data/first-names.json";
-import { uniqueNamesGenerator, Config, adjectives, colors, animals } from 'unique-names-generator';
+import * as FIRST_NAMES from '../data/first-names.json';
+import * as LAST_NAMES from '../data/first-names.json';
+import {
+  uniqueNamesGenerator,
+  Config,
+  adjectives,
+  colors,
+  animals,
+} from 'unique-names-generator';
+
+enum CustomTypes {
+  FIRST_NAME = 'FIRST_NAME',
+  LAST_NAME = 'LAST_NAME',
+  NICK_NAME = 'NICK_NAME',
+  DESCRIPTION = 'DESCRIPTION',
+  EMAIL = 'EMAIL',
+}
 
 @Injectable()
 export class ConverterService {
@@ -22,13 +36,13 @@ export class ConverterService {
 
     const response = [];
     let maxLength = dto.count > 200 ? 200 : dto.count;
-    for (let c = 0; c < dto.count; c++) {
+
+    for (let c = 0; c < maxLength; c++) {
       const fakeObj = this.generateData(mainInterface, parsed);
       if (fakeObj) {
         response.push(fakeObj);
       }
     }
-
     return response;
   }
 
@@ -39,31 +53,40 @@ export class ConverterService {
       // let mainInterface = interfacesArray[0];
       mainInterface = this.removeInterfaceName(mainInterface);
       mainInterface = this.removeFirstAndLastBraces(mainInterface);
-      let splitted = this.splitInterfacePropertyes(mainInterface);
+      let splitted = this.splitInterfacePropertyes(mainInterface).filter(el => el);
 
       splitted.forEach((el) => {
-
         let [prop, type] = el.split(':').map((e) => e.trim());
 
         if (type === 'undefined' || type === 'null') {
           interfaceObject[prop] = type;
-        } else if (this.primitiveTypes.includes(type)) {
-
+        } else if (
+          this.primitiveTypes.includes(type) ||
+          type.includes('CustomTypes')
+        ) {
           switch (type) {
             case 'string':
-              if(this.isPropLastName(prop)) {
-                interfaceObject[prop] = FIRST_NAMES[this.getRandomIndex(0, FIRST_NAMES.length - 1)]
-              } else if(this.isPropUserName(prop)) {
-                interfaceObject[prop] =  uniqueNamesGenerator({
+            case 'CustomTypes.FIRST_NAME':
+            case 'CustomTypes.LAST_NAME':
+            case 'CustomTypes.NICK_NAME':
+            case 'CustomTypes.DESCRIPTION':
+            case 'CustomTypes.EMAIL':
+              if (this.isTypeLastName(type)) {
+                interfaceObject[prop] =
+                  LAST_NAMES[this.getRandomIndex(0, FIRST_NAMES.length - 1)];
+              } else if (this.isTypeUserName(type)) {
+                interfaceObject[prop] = uniqueNamesGenerator({
                   dictionaries: [adjectives, colors],
                   separator: '-',
                   length: 2,
-                })
-                console.log(interfaceObject[prop])
-              } else if(this.isPropFirstName(prop)) {
-                interfaceObject[prop] = LAST_NAMES[this.getRandomIndex(0, LAST_NAMES.length - 1)]
-              }  else if(prop.toLowerCase().includes('email')) {
+                });
+              } else if (this.isTypeFirstName(type)) {
+                interfaceObject[prop] =
+                  FIRST_NAMES[this.getRandomIndex(0, LAST_NAMES.length - 1)];
+              } else if (this.isTypeEmail(type)) {
                 interfaceObject[prop] = 'example@domain.com';
+              } else if (this.isTypeDescription(type)) {
+                interfaceObject[prop] = 'Lorem Ipsum'.repeat(5);
               } else {
                 interfaceObject[prop] = 'Lorem Ipsum';
               }
@@ -77,8 +100,8 @@ export class ConverterService {
             default:
               interfaceObject[prop] = undefined;
           }
-
         } else {
+          //TODO: generate multiple data if property is type of List<Interface>
 
           let intertaceExists = interfacesArray.filter((el) => {
             let i = el.indexOf('{');
@@ -91,13 +114,12 @@ export class ConverterService {
               interfacesArray,
             );
           }
-
         }
       });
 
       return interfaceObject;
     } catch (error) {
-      console.log(error)
+      console.log(error);
       return null;
     }
   }
@@ -155,20 +177,27 @@ export class ConverterService {
       .flat();
   }
 
-  private isPropLastName(prop: string): boolean {
-    return prop.toLowerCase().includes('name') && (prop.toLowerCase().includes('sur') || prop.toLowerCase().includes('last'));
+  private isTypeLastName(type: string): boolean {
+    return type === 'CustomTypes.LAST_NAME';
   }
 
-  private isPropUserName(prop: string): boolean {
-    return prop.toLowerCase().includes('name') && (prop.toLowerCase().includes('user') || prop.toLowerCase().includes('nick'));
+  private isTypeUserName(type: string): boolean {
+    return type === 'CustomTypes.NICK_NAME';
   }
 
-  private isPropFirstName(prop: string): boolean {
-    return prop.toLowerCase().includes('name');
+  private isTypeFirstName(type: string): boolean {
+    return type === 'CustomTypes.FIRST_NAME';
+  }
+
+  private isTypeEmail(type: string): boolean {
+    return type === 'CustomTypes.EMAIL';
+  }
+
+  private isTypeDescription(type: string): boolean {
+    return type === 'CustomTypes.DESCRIPTION';
   }
 
   private getRandomIndex(min = 0, max): number {
-    return Math.floor(Math.random() * (max - min + 1) + min)
+    return Math.floor(Math.random() * (max - min + 1) + min);
   }
-
 }

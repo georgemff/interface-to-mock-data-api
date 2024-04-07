@@ -15,8 +15,14 @@ describe('ConverterController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(convertedController.convertInterface()).toBe('Hello World!');
+    it('should return array of {name: "Lorem Ipsum"}', () => {
+      const req = {
+        count: 1,
+        interface: "T{name:string,}"
+      }
+
+      const expectedResponse = [{name: 'Lorem Ipsum'}]
+      expect(convertedController.convertInterface(req)).toEqual(expectedResponse);
     });
   });
 });
