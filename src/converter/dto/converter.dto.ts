@@ -1,3 +1,4 @@
 export interface ConverterRequestDto {
-    interface: string
+    interface: string,
+    count: number
 }
