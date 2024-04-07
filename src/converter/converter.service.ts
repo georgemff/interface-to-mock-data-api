@@ -9,6 +9,7 @@ import {
   colors,
   animals,
 } from 'unique-names-generator';
+import {LoremIpsum} from 'lorem-ipsum'
 
 enum CustomTypes {
   FIRST_NAME = 'FIRST_NAME',
@@ -20,6 +21,20 @@ enum CustomTypes {
 
 @Injectable()
 export class ConverterService {
+  private descriptionLorem = new LoremIpsum({
+    wordsPerSentence: {
+      min: 4,
+      max: 20
+    }
+  })
+
+  private randomStringLorem = new LoremIpsum({
+    wordsPerSentence: {
+      min: 2,
+      max: 10
+    }
+  })
+
   private primitiveTypes: string[] = [
     'number',
     'string',
@@ -27,6 +42,13 @@ export class ConverterService {
     'undefined',
     'null',
   ];
+
+  private emailDomains: string[] = [
+    '@gmail.com',
+    '@outlook.com',
+    '@yahoo.com',
+    '@icloud.com',
+  ]
 
   convertInterface(dto: ConverterRequestDto): any {
     const parsed = this.parseDtoString(dto.interface);
@@ -84,11 +106,11 @@ export class ConverterService {
                 interfaceObject[prop] =
                   FIRST_NAMES[this.getRandomIndex(0, LAST_NAMES.length - 1)];
               } else if (this.isTypeEmail(type)) {
-                interfaceObject[prop] = 'example@domain.com';
+                interfaceObject[prop] = `example${this.emailDomains[this.getRandomIndex(0, this.emailDomains.length - 1)]}`;
               } else if (this.isTypeDescription(type)) {
-                interfaceObject[prop] = 'Lorem Ipsum'.repeat(5);
+                interfaceObject[prop] = this.descriptionLorem.generateSentences();
               } else {
-                interfaceObject[prop] = 'Lorem Ipsum';
+                interfaceObject[prop] = this.randomStringLorem.generateWords();
               }
               break;
             case 'number':
@@ -156,7 +178,7 @@ export class ConverterService {
   }
 
   private removeInterfaceName(intString: string): string {
-    let indexOfCurlyBraces = intString.indexOf('{');
+    let indexOfCurlyBraces = intString?.indexOf('{');
 
     if (!indexOfCurlyBraces) return undefined;
 
@@ -164,6 +186,8 @@ export class ConverterService {
   }
 
   private removeFirstAndLastBraces(str: string): string {
+    if(!str) return "";
+
     str = str.substring(1);
     str = str.substring(0, str.length - 1);
     return str;
@@ -171,6 +195,8 @@ export class ConverterService {
 
   private splitInterfacePropertyes(str: string): string[] {
     //split it with comma or semicolon depending on what user has used in interface
+    if (!str) return [];
+
     return str
       .split(',')
       .map((e) => e.split(';'))
